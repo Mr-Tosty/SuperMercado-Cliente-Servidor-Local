@@ -13,11 +13,11 @@ import pyttsx3
 
 os.environ["OPENCV_LOG_LEVEL"] = "ERROR"
 
-# --- COLORES ESTILO OXXO
+# --- COLORES ESTILO
 COLOR_FONDO = "#00723F"      # Verde oscuro de fondo
 COLOR_HEADER = "#00522B"     # Verde más oscuro para cabecera
-COLOR_ITEM_BG = "#00A859"    # Verde OXXO para items
-COLOR_TOTAL = "#FFB300"      # Amarillo OXXO
+COLOR_ITEM_BG = "#00A859"    # Verde para items
+COLOR_TOTAL = "#FFB300"      # Amarillo
 COLOR_TEXTO = "#FFFFFF"      # Blanco
 COLOR_TEXTO_OSCURO = "#000"  # Negro
 
@@ -62,8 +62,8 @@ class CajaRegistradoraAPP:
         self.root.configure(bg=COLOR_FONDO)
         
         self.inicializar_bd()
-        self.carrito = []  # Lista de diccionarios con los productos a cobrar
-        self.ultimo_scan = 0 # Para evitar escanear múltiples veces por segundo
+        self.carrito = []
+        self.ultimo_scan = 0
         
         self.construir_interfaz()
         
@@ -72,11 +72,9 @@ class CajaRegistradoraAPP:
         self.actualizar_camara()
 
     def inicializar_bd(self):
-        # Obtenemos la ruta absoluta de la carpeta donde está este script
         base_dir = os.path.dirname(os.path.abspath(__file__))
         db_path = os.path.join(base_dir, 'caja_registradora.db')
         
-        # Conectamos obligatoriamente al archivo que está junto al script
         self.conexion = sqlite3.connect(db_path)
         self.cursor = self.conexion.cursor()
         self.cursor.execute('''
@@ -86,7 +84,6 @@ class CajaRegistradoraAPP:
             precio REAL NOT NULL,
             descripcion TEXT NOT NULL
         )''')
-        # Insertar algunos productos de prueba si está vacía
         self.cursor.execute("SELECT COUNT(*) FROM productos")
         if self.cursor.fetchone()[0] == 0:
             productos = [
@@ -97,7 +94,6 @@ class CajaRegistradoraAPP:
         self.conexion.commit()
 
     def construir_interfaz(self):
-        # HEADER
         header = tk.Frame(self.root, bg=COLOR_HEADER, height=80)
         header.pack(fill="x")
         header.pack_propagate(False)
@@ -108,7 +104,6 @@ class CajaRegistradoraAPP:
         body = tk.Frame(self.root, bg=COLOR_FONDO)
         body.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # --- PANEL IZQUIERDO (Lista de artículos) ---
         left_panel = tk.Frame(body, bg=COLOR_FONDO)
         left_panel.pack(side="left", fill="both", expand=True)
         
@@ -126,12 +121,10 @@ class CajaRegistradoraAPP:
         
         self.frame_items.bind("<Configure>", lambda e: self.canvas_items.configure(scrollregion=self.canvas_items.bbox("all")))
         
-        # --- PANEL DERECHO (Cámara, Imagen, Controles y Total) ---
         right_panel = tk.Frame(body, bg=COLOR_FONDO, width=380)
         right_panel.pack(side="right", fill="y", padx=(20, 0))
         right_panel.pack_propagate(False)
         
-        # Área de cámara e imagen del producto
         media_frame = tk.Frame(right_panel, bg=COLOR_FONDO)
         media_frame.pack(fill="x", pady=(0, 10))
         
@@ -142,32 +135,28 @@ class CajaRegistradoraAPP:
         self.lbl_video.pack(fill="both", expand=True)
         
         try:
-            # Busca la imagen en la carpeta 'imagenes'
             img_icono = Image.open("Icono.png").resize((180, 150))
             img_icono_tk = ImageTk.PhotoImage(image=img_icono)
             self.lbl_video.configure(image=img_icono_tk)
-            self.lbl_video.image = img_icono_tk # Mantiene la referencia
+            self.lbl_video.image = img_icono_tk
         except Exception:
             self.lbl_video.configure(text="Icono.png no\nencontrado", fg="white")
         
         self.lbl_imagen_actual = tk.Label(media_frame, bg="white", text="Escanea un\nProducto", font=("Arial", 12))
         self.lbl_imagen_actual.pack(side="right", fill="both", expand=True, padx=(5, 0))
         
-        # Controles y Botones
         control_frame = tk.Frame(right_panel, bg=COLOR_FONDO)
         control_frame.pack(fill="x", pady=5)
         
         self.entry_manual = tk.Entry(control_frame, font=("Arial", 16))
         self.entry_manual.pack(fill="x", pady=5)
         
-        # Vincular la tecla "Enter" de un escáner físico a la nueva función
+        
         self.entry_manual.bind("<Return>", lambda event: self.intentar_escanear())
         
-        # Fila de botones 1
         btn_frame1 = tk.Frame(control_frame, bg=COLOR_FONDO)
         btn_frame1.pack(fill="x", pady=2)
         
-        # Guardamos la referencia del botón en self.btn_ingresar para poder bloquearlo
         self.btn_ingresar = tk.Button(btn_frame1, text="Buscar / Ingresar", font=("Arial", 10, "bold"), bg=COLOR_TOTAL, 
                                       command=self.intentar_escanear)
         self.btn_ingresar.pack(side="left", expand=True, fill="x", padx=2)
@@ -175,13 +164,11 @@ class CajaRegistradoraAPP:
         tk.Button(btn_frame1, text="Registrar en BD", font=("Arial", 10, "bold"), bg="#00A859", fg="white", 
                   command=lambda: self.registrar_nuevo_producto(self.entry_manual.get())).pack(side="right", expand=True, fill="x", padx=2)
         
-        # Fila de botones 2
         btn_frame2 = tk.Frame(control_frame, bg=COLOR_FONDO)
         btn_frame2.pack(fill="x", pady=2)
         tk.Button(btn_frame2, text="Ver Base de Datos", font=("Arial", 10, "bold"), bg="#56B3C2", 
                   command=self.ver_base_datos).pack(fill="x", padx=2)
         
-        # Caja de Total
         total_frame = tk.Frame(right_panel, bg=COLOR_TOTAL, bd=2, relief="solid")
         total_frame.pack(fill="x", pady=15)
         tk.Label(total_frame, text="TOTAL A PAGAR:", font=("Arial", 16, "bold"), bg=COLOR_TOTAL).pack(anchor="w", padx=10, pady=(10,0))
@@ -191,7 +178,6 @@ class CajaRegistradoraAPP:
         self.lbl_impuestos = tk.Label(total_frame, text="(Incluye 16% IVA)", font=("Arial", 10), bg=COLOR_TOTAL)
         self.lbl_impuestos.pack(anchor="e", padx=10, pady=(0, 5))
         
-        # Botón Pagar
         tk.Button(right_panel, text="PAGAR AHORA", font=("Arial", 20, "bold"), bg="#E1251B", fg="white",
                   command=self.mostrar_opciones_pago).pack(fill="x", pady=5)
         
@@ -202,7 +188,6 @@ class CajaRegistradoraAPP:
                 codigos_detectados = decode(frame)
                 for codigo_leido in codigos_detectados:
                     codigo = codigo_leido.data.decode('utf-8')
-                    # Evitar múltiples lecturas del mismo código en menos de 2 segundos
                     if time.time() - self.ultimo_scan > 2:
                         self.procesar_codigo(codigo)
                         self.ultimo_scan = time.time()
@@ -217,36 +202,29 @@ class CajaRegistradoraAPP:
         self.root.after(50, self.actualizar_camara)
 
     def intentar_escanear(self):
-        # Si el escáner está en sus 5 segundos de bloqueo, se cancela la acción
         if getattr(self, 'escaneo_bloqueado', False):
             return
             
         codigo = self.entry_manual.get().strip()
         
-        # Validar si el campo de texto está vacío o hubo un error de lectura
         if not codigo:
             messagebox.showwarning("Error de Escaneo", "El producto no ha sido escaneado correctamente, inténtelo de nuevo.")
             return
             
-        # Bloquear el botón de ingreso y las lecturas físicas para evitar duplicados
         self.escaneo_bloqueado = True
         self.btn_ingresar.config(state="disabled", text="Espere (5s)...")
         
-        # Programar el desbloqueo después de 5000 milisegundos (5 segundos)
         self.root.after(5000, self.desbloquear_escaneo)
         
-        # Procesar el código del producto
         self.procesar_codigo(codigo)
 
     def desbloquear_escaneo(self):
-        # Habilitar nuevamente el botón
         self.escaneo_bloqueado = False
         self.btn_ingresar.config(state="normal", text="Buscar / Ingresar")
         
         self.entry_manual.delete(0, tk.END)
 
     def procesar_codigo(self, codigo):
-        # Busca en la BD
         self.cursor.execute("SELECT nombre, precio, descripcion FROM productos WHERE codigo_barras = ?", (codigo,))
         producto = self.cursor.fetchone()
         
@@ -289,11 +267,9 @@ class CajaRegistradoraAPP:
                 import pygame
                 import pyttsx3
                 
-                # Inicializar el mezclador de pygame de forma segura
                 if not pygame.mixer.get_init():
                     pygame.mixer.init()
                 
-                # 1. Reproducir el MP3 del Pip a máximo volumen (1.0)
                 try:
                     sonido_pip = pygame.mixer.Sound("sonidos/escanner_pi.mp3")
                     sonido_pip.set_volume(1.0)
@@ -301,10 +277,9 @@ class CajaRegistradoraAPP:
                 except Exception as e:
                     print(f"Error al cargar sonido mp3: {e}")
                 
-                # 2. Reproducir la voz con el nombre de la BD
                 try:
                     motor = pyttsx3.init()
-                    motor.setProperty('rate', 145) # Velocidad ligeramente ajustada para que suene más natural
+                    motor.setProperty('rate', 145)
                     motor.say(nombre_prod)
                     motor.runAndWait()
                 except Exception as e:
@@ -332,7 +307,6 @@ class CajaRegistradoraAPP:
             messagebox.showinfo("Aviso", "Primero escanea o escribe un código para registrar.")
             return
 
-        # Abrir ventana para registrar
         reg_win = tk.Toplevel(self.root)
         reg_win.title("Nuevo Producto")
         reg_win.geometry("400x350")
@@ -447,11 +421,9 @@ class CajaRegistradoraAPP:
             info_frame = tk.Frame(item_frame, bg=bg_color)
             info_frame.pack(side="left", fill="both", expand=True)
             
-            # Mostramos el indicador (x2), (x3) si hay más de 1 artículo
             texto_nombre = f"{item['nombre']} (x{cantidad})" if cantidad > 1 else item['nombre']
             tk.Label(info_frame, text=texto_nombre, font=("Arial", 14, "bold"), bg=bg_color, fg=COLOR_TEXTO, anchor="w").pack(fill="x")
             
-            # Subtítulo para mostrar el precio individual si está agrupado
             desc_text = item['desc']
             if cantidad > 1:
                 desc_text += f" | Precio Unitario: ${precio_unitario:.2f}"
@@ -490,25 +462,22 @@ class CajaRegistradoraAPP:
         tarjeta_win = tk.Toplevel(self.root)
         tarjeta_win.title("Terminal Bancaria - UX")
         tarjeta_win.geometry("400x380")
-        tarjeta_win.configure(bg="#2b2b2b") # Color oscuro simulando terminal
+        tarjeta_win.configure(bg="#2b2b2b")
         tarjeta_win.transient(self.root)
         tarjeta_win.grab_set()
 
         tk.Label(tarjeta_win, text="Terminal Punto de Venta", font=("Arial", 14, "bold"), bg="#2b2b2b", fg="white").pack(pady=15)
 
-        # Selección de Banco de México
         tk.Label(tarjeta_win, text="Seleccione Banco:", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack()
         bancos = ["BBVA", "Banamex", "Santander", "Banorte", "HSBC", "Scotiabank"]
         combo_banco = ttk.Combobox(tarjeta_win, values=bancos, state="readonly", font=("Arial", 11))
         combo_banco.current(0)
         combo_banco.pack(pady=5)
 
-        # Número de tarjeta
         tk.Label(tarjeta_win, text="Número de Tarjeta (Débito/Crédito):", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack(pady=(10,0))
         ent_tarjeta = tk.Entry(tarjeta_win, font=("Arial", 14), justify="center")
         ent_tarjeta.pack(pady=5)
 
-        # PIN
         tk.Label(tarjeta_win, text="PIN (4 dígitos):", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack(pady=(10,0))
         ent_nip = tk.Entry(tarjeta_win, font=("Arial", 14), show="*", justify="center")
         ent_nip.pack(pady=5)
@@ -545,11 +514,9 @@ class CajaRegistradoraAPP:
             try:
                 recibido = float(ent_recibido.get())
                 if recibido < self.total_actual:
-                    # Validar que no entregue menos dinero del que cuesta la cuenta
                     faltante = self.total_actual - recibido
                     messagebox.showerror("Efectivo Insuficiente", f"El cliente debe entregar al menos ${self.total_actual:.2f}\nFaltan ${faltante:.2f}")
                 else:
-                    # Calcular el cambio exacto
                     cambio = recibido - self.total_actual
                     if cambio > 0:
                         messagebox.showinfo("Cambio a entregar", f"Pago exitoso.\nDebe entregar al cliente un cambio de: ${cambio:.2f}")
@@ -568,25 +535,22 @@ class CajaRegistradoraAPP:
         tarjeta_win = tk.Toplevel(self.root)
         tarjeta_win.title("Terminal Bancaria - UX")
         tarjeta_win.geometry("400x380")
-        tarjeta_win.configure(bg="#2b2b2b") # Color oscuro simulando terminal
+        tarjeta_win.configure(bg="#2b2b2b")
         tarjeta_win.transient(self.root)
         tarjeta_win.grab_set()
 
         tk.Label(tarjeta_win, text="Terminal Punto de Venta", font=("Arial", 14, "bold"), bg="#2b2b2b", fg="white").pack(pady=15)
 
-        # Selección de Banco de México
         tk.Label(tarjeta_win, text="Seleccione Banco:", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack()
         bancos = ["BBVA", "Banamex", "Santander", "Banorte", "HSBC", "Scotiabank"]
         combo_banco = ttk.Combobox(tarjeta_win, values=bancos, state="readonly", font=("Arial", 11))
         combo_banco.current(0)
         combo_banco.pack(pady=5)
 
-        # Número de tarjeta
         tk.Label(tarjeta_win, text="Número de Tarjeta (Débito/Crédito):", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack(pady=(10,0))
         ent_tarjeta = tk.Entry(tarjeta_win, font=("Arial", 14), justify="center")
         ent_tarjeta.pack(pady=5)
 
-        # PIN
         tk.Label(tarjeta_win, text="PIN (4 dígitos):", bg="#2b2b2b", fg="white", font=("Arial", 11)).pack(pady=(10,0))
         ent_nip = tk.Entry(tarjeta_win, font=("Arial", 14), show="*", justify="center")
         ent_nip.pack(pady=5)
@@ -623,7 +587,6 @@ class CajaRegistradoraAPP:
             try:
                 recibido = float(ent_recibido.get())
                 if recibido < self.total_actual:
-                    # Validar que no entregue menos dinero del que cuesta la cuenta
                     faltante = self.total_actual - recibido
                     messagebox.showerror("Efectivo Insuficiente", f"El cliente debe entregar al menos ${self.total_actual:.2f}\nFaltan ${faltante:.2f}")
                 else:
@@ -655,12 +618,10 @@ class CajaRegistradoraAPP:
             except Exception as e:
                 print(f"Error al reproducir sonido de ticket: {e}")
                 
-        # Lanzar el sonido de la impresora
         threading.Thread(target=reproducir_sonido_impresora, daemon=True).start()
 
         import time, tempfile, webbrowser, os
 
-        # Bloque HTML actualizado con meta charset y flex-start para escalabilidad infinita
         html = f'''
         <!DOCTYPE html>
         <html>
@@ -718,7 +679,6 @@ class CajaRegistradoraAPP:
                 <div class="line"></div>
         '''
         
-        # Lógica dinámica para mostrar información de efectivo o tarjeta
         if "TARJETA" in metodo_pago:
             html += f'<p style="margin-top: 15px; font-size: 14px;">Bank card: **** **** **** {metodo_pago}</p>'
         else:
@@ -764,7 +724,6 @@ def iniciar_app():
 if __name__ == "__main__":
     if not os.path.exists("imagenes"):
         os.makedirs("imagenes")
-    # Iniciar con el Login
     root_login = tk.Tk()
     login = LoginWindow(root_login)
     root_login.mainloop()
